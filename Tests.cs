@@ -31,6 +31,7 @@ class Tests {
   Assembly asm=typeof(Scene).Assembly;Type widgetType=asm.GetType("Widget");widgetType.GetField("Root").SetValue(null,temp);
   Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
   var widget=(Form)Activator.CreateInstance(widgetType);var live=(List<Scene>)widgetType.GetField("Scenes").GetValue(widget);var settings=(AppSettings)widgetType.GetField("Settings").GetValue(widget);settings.TitleOnly=true;Check(widget.Width==48&&widget.Height==48,"widget remains 48 by 48");
+  Check(Brand.Mark.Width==32&&Brand.Mark.Height==32&&Brand.Mark.GetPixel(0,0).A==0,"transparent small logo embedded");Check(Brand.AppIcon.Width==32&&Brand.AppIcon.Height==32,"application icon embedded");using(var widgetImage=new Bitmap(48,48)){widget.DrawToBitmap(widgetImage,new Rectangle(0,0,48,48));widgetImage.Save(Path.Combine(Path.GetDirectoryName(args[0]),"assets","widget-preview.png"));}
   var capture=widgetType.GetMethod("CaptureItem",BindingFlags.NonPublic|BindingFlags.Instance);
   a.Pinned=true;a.Done=false;live.Add(a);replacement.ProcessStartTicks=10;replacement.Time=DateTime.Now;
   Check((bool)capture.Invoke(widget,new object[]{replacement}),"record title-only scene without screenshot");Check(live.Count==1&&live[0].Project=="甲项目"&&live[0].Note=="核对数字"&&live[0].Pinned,"merge preserves project note and pin");
@@ -51,7 +52,7 @@ class Tests {
     var sb=S("ib",(int)hb,"SceneStack integration B",false,false);sb.ProcessId=target.Id;sb.Handle=hb;sb.ProcessStartTicks=sa.ProcessStartTicks;
     Check((bool)capture.Invoke(widget,new object[]{sa}),"real visible window screenshot captured");using(var screenshot=Image.FromFile(live[0].ImagePath))Check(screenshot.Width>0&&screenshot.Width<=1400,"screenshot decodes and is bounded");
     Check((bool)capture.Invoke(widget,new object[]{sb}),"second window screenshot captured");
-    SetForegroundWindow(new IntPtr(hb));Application.DoEvents();Check(GetForegroundWindow().ToInt64()==hb,"external B has foreground");
+    SetForegroundWindow(new IntPtr(hb));System.Threading.Thread.Sleep(180);Application.DoEvents();Check(GetForegroundWindow().ToInt64()==hb,"external B has foreground");
     try { widgetType.GetMethod("QuickReturn").Invoke(widget,null); } catch(Exception ex) { Console.WriteLine("Invoke failure: "+ex.GetType().Name+" "+ex.Message); if(ex.InnerException!=null)Console.WriteLine("Inner: "+ex.InnerException.GetType().Name+" "+ex.InnerException.Message); throw; } System.Threading.Thread.Sleep(180); Application.DoEvents(); Console.WriteLine("Focus actual="+GetForegroundWindow().ToInt64()+" expected="+ha);Check(GetForegroundWindow().ToInt64()==ha,"quick return switches B to A");Check(live.Count==2&&live[0].Title=="SceneStack integration B","quick return preserves and merges interrupted B");
     widgetType.GetMethod("QuickReturn").Invoke(widget,null);System.Threading.Thread.Sleep(180); Application.DoEvents();Check(GetForegroundWindow().ToInt64()==hb,"quick return switches back A to B");Check(live.Count==2&&live[0].Title=="SceneStack integration A","quick return alternation keeps two scenes");
    }finally{target.CloseMainWindow();if(!target.WaitForExit(3000))target.Kill();}
