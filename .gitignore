@@ -1,0 +1,8 @@
+build/
+Tests.exe
+*.next.exe
+*.tmp
+*.log
+scenes.xml
+settings.xml
+*.jpg
